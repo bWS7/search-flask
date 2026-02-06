@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Login | Sousa Araujo</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<div class="login-wrapper">
+  <div class="login-left">
+    <img src="{{ url_for('static', filename='img/logo.png') }}">
+  </div>
+
+  <div class="login-right">
+    <div class="login-card">
+      <h1>Bem-vindo</h1>
+      <p>Acesso ao sistema interno</p>
+
+      <form method="POST">
+        <input type="email" name="email" placeholder="E-mail corporativo" required>
+        <input type="password" name="senha" placeholder="Senha" required>
+        <button type="submit">Entrar no sistema</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

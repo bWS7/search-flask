@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Consulta de Colaboradores</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<div class="header">
+  <img src="{{ url_for('static', filename='img/logo.png') }}">
+  <a href="{{ url_for('logout') }}">Sair</a>
+</div>
+
+<div class="main">
+  <div class="card">
+    <h2>Pesquisar Colaborador</h2>
+
+    <input
+      type="text"
+      class="search-input"
+      id="busca"
+      placeholder="Digite nome, e-mail ou CNPJ">
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>E-mail</th>
+            <th>CNPJ</th>
+            <th>Cadastro UAU</th>
+          </tr>
+        </thead>
+        <tbody id="resultado"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById("busca").addEventListener("keyup", async function () {
+  const q = this.value.trim();
+  if (q.length < 2) {
+    document.getElementById("resultado").innerHTML = "";
+    return;
+  }
+
+  const res = await fetch(`/buscar?q=${q}`);
+  const dados = await res.json();
+
+  let html = "";
+  dados.forEach(d => {
+    html += `
+      <tr>
+        <td>${d.colaborador}</td>
+        <td class="copiar">${d.email || ""}</td>
+        <td class="copiar">${d.cnpj || ""}</td>
+        <td>${d.cadastro_uau}</td>
+      </tr>
+    `;
+  });
+
+  document.getElementById("resultado").innerHTML = html;
+});
+
+document.addEventListener("click", function (e) {
+  if (e.target.classList.contains("copiar")) {
+    const texto = e.target.innerText.trim();
+    if (!texto) return;
+
+    copiarTexto(texto);
+    e.target.classList.add("copiado");
+    setTimeout(() => e.target.classList.remove("copiado"), 600);
+  }
+});
+
+function copiarTexto(texto) {
+  const input = document.createElement("input");
+  input.value = texto;
+  document.body.appendChild(input);
+  input.select();
+  document.execCommand("copy");
+  document.body.removeChild(input);
+}
+</script>
+
+
+
+</body>
+</html>
