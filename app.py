@@ -1,8 +1,8 @@
 from flask import Flask, request, jsonify, render_template, redirect, url_for
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
 from flask_bcrypt import Bcrypt
-import psycopg2
-import psycopg2.extras
+import psycopg
+from psycopg import rows
 import os
 
 app = Flask(__name__)
@@ -14,8 +14,8 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
 
-# 🔌 Conexão com banco (local ou Neon)
-conn = psycopg2.connect(
+# 🔌 Conexão com banco (Render / Neon)
+conn = psycopg.connect(
     "postgresql://bruno:8caQl5A5aIpd07c6oFUgG4UEUF9ds8G2@dpg-d632lrugpgdc739thkr0-a.oregon-postgres.render.com/sa_r2pm"
 )
 
@@ -28,13 +28,12 @@ class Usuario(UserMixin):
 
 @login_manager.user_loader
 def load_user(user_id):
-    cur = conn.cursor()
-    cur.execute(
-        "SELECT id, nome, email FROM usuarios WHERE id = %s",
-        (user_id,)
-    )
-    u = cur.fetchone()
-    cur.close()
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT id, nome, email FROM usuarios WHERE id = %s",
+            (user_id,)
+        )
+        u = cur.fetchone()
 
     if u:
         return Usuario(u[0], u[1], u[2])
@@ -53,14 +52,13 @@ def login():
         email = request.form["email"]
         senha = request.form["senha"]
 
-        cur = conn.cursor()
-        cur.execute("""
-            SELECT id, nome, email, senha_hash
-            FROM usuarios
-            WHERE email = %s AND ativo = TRUE
-        """, (email,))
-        u = cur.fetchone()
-        cur.close()
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT id, nome, email, senha_hash
+                FROM usuarios
+                WHERE email = %s AND ativo = TRUE
+            """, (email,))
+            u = cur.fetchone()
 
         if u and bcrypt.check_password_hash(u[3], senha):
             user = Usuario(u[0], u[1], u[2])
@@ -87,24 +85,23 @@ def buscar():
     if not termo:
         return jsonify([])
 
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("""
-        SELECT id, colaborador, email, cnpj, cadastro_uau
-        FROM colaboradores
-        WHERE
-            colaborador ILIKE %s
-            OR email ILIKE %s
-            OR cnpj ILIKE %s
-        ORDER BY colaborador
-        LIMIT 30
-    """, (
-        f"%{termo}%",
-        f"%{termo}%",
-        f"%{termo}%"
-    ))
+    with conn.cursor(row_factory=rows.dict_row) as cur:
+        cur.execute("""
+            SELECT id, colaborador, email, cnpj, cadastro_uau
+            FROM colaboradores
+            WHERE
+                colaborador ILIKE %s
+                OR email ILIKE %s
+                OR cnpj ILIKE %s
+            ORDER BY colaborador
+            LIMIT 30
+        """, (
+            f"%{termo}%",
+            f"%{termo}%",
+            f"%{termo}%"
+        ))
 
-    dados = cur.fetchall()
-    cur.close()
+        dados = cur.fetchall()
 
     return jsonify(dados)
 
